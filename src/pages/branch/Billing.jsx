@@ -1408,6 +1408,7 @@ const printReceipt = async (receipt) => {
 
               <button
                 type="button"
+                style = "background-color: #05630b;"
                 className="settle-button"
                 disabled={saving || !cart.length}
                 onClick={openPaymentModal}
