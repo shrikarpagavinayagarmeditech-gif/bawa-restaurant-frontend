@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
 // import qz from "qz-tray";
 import api from "../../api/api.js";
 
@@ -14,6 +15,8 @@ import {
 
 import ReceiptPrint from "./ReceiptPrint.jsx";
 import "./Billing.css";
+import html2canvas from "html2canvas";
+import ReceiptPrint from "./ReceiptPrint";
 
 const LOGO_SRC = "/images/bawa-logo.png";
 
@@ -377,8 +380,75 @@ function Billing() {
 
   // Direct print through QZ Tray; falls back to the browser print dialog.
   
+
+
 const printReceipt = async (receipt) => {
+  let printContainer = null;
+  let root = null;
+
   try {
+    // Create a hidden container.
+    printContainer = document.createElement("div");
+
+    Object.assign(printContainer.style, {
+      position: "fixed",
+      left: "-10000px",
+      top: "0",
+      width: "72mm",
+      background: "#ffffff",
+      zIndex: "-1",
+    });
+
+    document.body.appendChild(printContainer);
+
+    // Render the React receipt component.
+    root = createRoot(printContainer);
+    root.render(<ReceiptPrint receipt={receipt} />);
+
+    // Wait for React to render.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Wait for the logo and other images to load.
+    const images = Array.from(
+      printContainer.querySelectorAll("img")
+    );
+
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete) return Promise.resolve();
+
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      })
+    );
+
+    // Wait for fonts to load.
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
+    const receiptElement =
+      printContainer.querySelector(".thermal-receipt");
+
+    if (!receiptElement) {
+      throw new Error("Receipt component could not be rendered.");
+    }
+
+    // Convert the styled receipt into an image.
+    const canvas = await html2canvas(receiptElement, {
+      backgroundColor: "#ffffff",
+      scale: 3,
+      useCORS: true,
+      logging: false,
+    });
+
+    const base64 = canvas
+      .toDataURL("image/png")
+      .split(",")[1];
+
+    // Send the image directly to the printer bridge.
     const response = await fetch("http://localhost:9100/print", {
       method: "POST",
       headers: {
@@ -386,68 +456,18 @@ const printReceipt = async (receipt) => {
       },
       body: JSON.stringify({
         cut: true,
+        paperWidth: 80, // Change to 58 for a 58mm printer.
+        reference: String(receipt.invoiceNumber || ""),
         content: [
           {
-            type: "text",
-            text: receipt.branch?.name || "BAWA RESTAURANT",
+            type: "image",
+            base64,
             align: "center",
-            bold: true,
-            size: "large",
           },
           {
-            type: "text",
-            text: `Invoice: ${receipt.invoiceNumber}`,
+            type: "feed",
+            lines: 3,
           },
-          { type: "divider" },
-          {
-            type: "text",
-            text: "Item                 Qty       Amount",
-            bold: true,
-          },
-          ...receipt.items.map((item) => ({
-            type: "text",
-            text: `${item.name} x ${item.quantity}  ₹${(
-              Number(item.price) * Number(item.quantity)
-            ).toFixed(2)}`,
-          })),
-          { type: "divider" },
-          {
-            type: "row",
-            left: "Subtotal",
-            right: `₹${Number(receipt.subtotal).toFixed(2)}`,
-          },
-          {
-            type: "row",
-            left: "Discount",
-            right: `₹${Number(receipt.discountAmount).toFixed(2)}`,
-          },
-          {
-            type: "row",
-            left: "CGST",
-            right: `₹${Number(receipt.cgst).toFixed(2)}`,
-          },
-          {
-            type: "row",
-            left: "SGST",
-            right: `₹${Number(receipt.sgst).toFixed(2)}`,
-          },
-          {
-            type: "row",
-            left: "GRAND TOTAL",
-            right: `₹${Number(receipt.total).toFixed(2)}`,
-            bold: true,
-          },
-          {
-            type: "text",
-            text: `Payment: ${receipt.paymentMethod}`,
-          },
-          {
-            type: "text",
-            text: "Thank you! Visit Again",
-            align: "center",
-            bold: true,
-          },
-          { type: "feed", lines: 3 },
         ],
       }),
     });
@@ -456,22 +476,35 @@ const printReceipt = async (receipt) => {
 
     if (!response.ok) {
       throw new Error(
-        result.message || `Print failed with status ${response.status}`
+        result.message ||
+          result.detail ||
+          `Print failed with status ${response.status}`
       );
     }
 
-    console.log("Print job submitted:", result);
+    console.log("Receipt printed successfully:", result);
     return true;
   } catch (error) {
     console.error("Thermal printing failed:", error);
 
     alert(
-      "Receipt printing failed. Check that the Android print bridge is running and the Bluetooth printer is connected."
+      `Receipt printing failed: ${error.message}. Check the Android print bridge and Bluetooth printer.`
     );
 
     return false;
+  } finally {
+    // Clean up only after image capture and print submission.
+    if (root) {
+      root.unmount();
+    }
+
+    if (printContainer) {
+      printContainer.remove();
+    }
   }
 };
+
+
 
 
   // Print only after a successful completion and a known invoice number.
