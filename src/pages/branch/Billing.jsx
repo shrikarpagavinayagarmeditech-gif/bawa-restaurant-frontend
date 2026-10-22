@@ -65,6 +65,39 @@ const getFoodPrice = (item) =>
       0
   );
 
+// const getFoodImage = (item) => {
+//   const image =
+//     item?.imageUrl ||
+//     item?.image ||
+//     item?.foodItem?.imageUrl ||
+//     item?.foodItem?.image ||
+//     null;
+
+//   if (!image) return null;
+
+//   if (/^data:/i.test(image)) return image;
+
+//   try {
+//     const url = new URL(image, window.location.origin);
+
+//     if (
+//       ["localhost", "127.0.0.1"].includes(url.hostname) ||
+//       url.hostname === window.location.hostname
+//     ) {
+//       return `${url.pathname}${url.search}${url.hash}`;
+//     }
+
+//     if (/^https?:\/\//i.test(image)) return image;
+
+//     return image.startsWith("/") ? image : `/${image}`;
+//   } catch {
+//     return image.startsWith("/") ? image : `/${image}`;
+//   }
+// };
+
+
+const API_ORIGIN = "https://bawa.quiltoaiapps.com";
+
 const getFoodImage = (item) => {
   const image =
     item?.imageUrl ||
@@ -73,27 +106,20 @@ const getFoodImage = (item) => {
     item?.foodItem?.image ||
     null;
 
-  if (!image) return null;
+  if (!image || typeof image !== "string") return null;
 
+  // Preserve embedded images
   if (/^data:/i.test(image)) return image;
 
-  try {
-    const url = new URL(image, window.location.origin);
+  // Preserve complete external URLs
+  if (/^https?:\/\//i.test(image)) return image;
 
-    if (
-      ["localhost", "127.0.0.1"].includes(url.hostname) ||
-      url.hostname === window.location.hostname
-    ) {
-      return `${url.pathname}${url.search}${url.hash}`;
-    }
+  // Convert relative upload paths to backend URLs
+  const path = image.replace(/^\/+/, "");
 
-    if (/^https?:\/\//i.test(image)) return image;
-
-    return image.startsWith("/") ? image : `/${image}`;
-  } catch {
-    return image.startsWith("/") ? image : `/${image}`;
-  }
+  return `${API_ORIGIN}/${path}`;
 };
+
 
 const getFoodCategory = (item) =>
   item?.category || item?.foodItem?.category || null;
