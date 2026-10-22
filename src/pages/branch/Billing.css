@@ -973,7 +973,7 @@
     align-items: center;
     gap: 8px;
     border-radius: 8px;
-    background: var(--primary);
+     background-color: #008000;
     color: #fff;
     cursor: pointer;
     font-size: 12px;
