@@ -145,9 +145,19 @@ const OrderList = () => {
           </p>
         </div>
 
-        <div className="orders-count">
-          {orders.length} Orders
-        </div>
+       <div className="orders-count">
+  {orders.length} Orders - ₹
+  {orders
+    .reduce(
+      (total, order) =>
+        total + Number(order.totalAmount || 0),
+      0
+    )
+    .toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}
+</div>
       </div>
 
       {/* Filters */}
