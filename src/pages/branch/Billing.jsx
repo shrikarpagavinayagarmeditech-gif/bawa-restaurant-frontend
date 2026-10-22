@@ -1114,14 +1114,14 @@ const printReceipt = async (receipt) => {
           <div className="header-pill">▣ Branch</div>
           <div className="header-pill">● Active Shift</div>
 
-          <button
+          {/* <button
             type="button"
             className="held-header-btn"
             onClick={() => setShowHeldBills(true)}
           >
             ⏸ Held Bills
             {heldBills.length > 0 && <b>{heldBills.length}</b>}
-          </button>
+          </button> */}
         </div>
 
         <div className="pos-header-right">
@@ -1395,7 +1395,7 @@ const printReceipt = async (receipt) => {
             </button>
           ) : (
             <>
-              <div className="bill-actions">
+              {/* <div className="bill-actions">
                 <button
                   type="button"
                   className="hold-action"
@@ -1404,7 +1404,7 @@ const printReceipt = async (receipt) => {
                 >
                   ⏸ Hold Bill
                 </button>
-              </div>
+              </div> */}
 
               <button
                 type="button"
