@@ -982,7 +982,7 @@
 }
 
 .bawa-pos .settle-button:hover:not(:disabled) {
-    background: var(--primary-dark);
+    background: #008000;
 }
 
 .bawa-pos .settle-button>span {
