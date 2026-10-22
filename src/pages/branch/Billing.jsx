@@ -476,30 +476,56 @@ const printReceipt = async (receipt) => {
 
   // Print only after a successful completion and a known invoice number.
  
-useEffect(() => {
-  if (!printPayload?.invoiceNumber) return;
 
-  const invoiceKey = String(printPayload.invoiceNumber);
-
-  if (printedInvoiceRef.current === invoiceKey) return;
-
-  // Mark before sending to prevent duplicate effects.
-  printedInvoiceRef.current = invoiceKey;
-
-  void printReceipt(printPayload);
-}, [printPayload]);
-
-
-  // Disconnect QZ when leaving the page
+  // Print after successful billing, then start a new bill.
   useEffect(() => {
-    return () => {
-      try {
-        if (qz.websocket.isActive()) qz.websocket.disconnect();
-      } catch {
-        /* ignore */
+    if (!printPayload?.invoiceNumber) return;
+
+    const invoiceKey = String(printPayload.invoiceNumber);
+
+    if (printedInvoiceRef.current === invoiceKey) return;
+
+    // Prevent duplicate print requests.
+    printedInvoiceRef.current = invoiceKey;
+
+    let cancelled = false;
+
+    const printAndStartNewBill = async () => {
+      const printed = await printReceipt(printPayload);
+
+      if (cancelled) return;
+
+      if (printed) {
+        // Reset the completed bill after printing succeeds.
+        startNewBill();
+      } else {
+        // Keep the completed bill on screen if printing fails.
+        // The cashier can retry printing without losing the invoice.
+        alert(
+          `Invoice ${invoiceKey} is completed, but printing failed.`
+        );
       }
     };
-  }, []);
+
+    void printAndStartNewBill();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [printPayload]);
+
+
+
+  // // Disconnect QZ when leaving the page
+  // useEffect(() => {
+  //   return () => {
+  //     try {
+  //       if (qz.websocket.isActive()) qz.websocket.disconnect();
+  //     } catch {
+  //       /* ignore */
+  //     }
+  //   };
+  // }, []);
 
   // Load menu
   const loadMenu = async () => {
