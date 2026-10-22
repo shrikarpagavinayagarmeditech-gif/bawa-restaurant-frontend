@@ -16,7 +16,6 @@ import {
 import ReceiptPrint from "./ReceiptPrint.jsx";
 import "./Billing.css";
 import html2canvas from "html2canvas";
-import ReceiptPrint from "./ReceiptPrint";
 
 const LOGO_SRC = "/images/bawa-logo.png";
 
