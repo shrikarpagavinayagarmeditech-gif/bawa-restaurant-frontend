@@ -29,6 +29,37 @@ const PAPER_WIDTH_MM = 72;
 const money = (value) => `₹${Number(value || 0).toFixed(2)}`;
 const rs = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
 
+// Paisa rounding: rounds the FINAL payable amount to the nearest whole rupee
+// (0.50 and above rounds up). Works in integer paise to avoid floating-point
+// errors. Round Off = Rounded Amount - Amount Before Rounding.
+//   100.55 -> 101 (+0.45) | 100.45 -> 100 (-0.45) | 100.50 -> 101 (+0.50)
+//   100.99 -> 101 (+0.01) | 100.01 -> 100 (-0.01) | 150.75 -> 151 (+0.25)
+const roundToWholeRupee = (amount) => {
+  const paise = Math.round((Number(amount || 0) + Number.EPSILON) * 100);
+  const rupees = Math.floor((paise + 50) / 100);
+
+  return {
+    amountBeforeRounding: paise / 100,
+    roundedAmount: rupees,
+    roundOff: (rupees * 100 - paise) / 100,
+  };
+};
+
+// Signed display for the round-off value, e.g. "+₹0.45" / "-₹0.45" / "₹0.00"
+const formatRoundOff = (value) => {
+  const v = Number(value || 0);
+  if (v > 0) return `+₹${v.toFixed(2)}`;
+  if (v < 0) return `-₹${Math.abs(v).toFixed(2)}`;
+  return "₹0.00";
+};
+
+const formatRoundOffRs = (value) => {
+  const v = Number(value || 0);
+  if (v > 0) return `+${rs(v)}`;
+  if (v < 0) return `-${rs(Math.abs(v))}`;
+  return rs(0);
+};
+
 const escapeHtml = (value) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -298,6 +329,12 @@ const buildReceiptHtml = (receipt, logoDataUri) => {
      
       ${row("CGST (2.5%)", rs(receipt.cgst))}
       ${row("SGST (2.5%)", rs(receipt.sgst))}
+      ${
+        receipt.amountBeforeRounding !== undefined
+          ? row("Amount Before Rounding", rs(receipt.amountBeforeRounding)) +
+            row("Round Off", formatRoundOffRs(receipt.roundOff))
+          : ""
+      }
       ${hr}
       ${row("GRAND TOTAL", rs(receipt.total), true)}
       ${hr}
@@ -310,13 +347,115 @@ const buildReceiptHtml = (receipt, logoDataUri) => {
   Thank you! Visit Again
 </div>
 
-<div style="text-align:center; font-size:10px; line-height:1.5; margin-top:6px;">
-  ஆர்டரின் பெயரில் அணைத்து விசேஷங்களுக்கும் சமைத்து தரப்படும்
-</div>
+// <div style="text-align:center; font-size:10px; line-height:1.5; margin-top:6px;">
+//   ஆர்டரின் பெயரில் அணைத்து விசேஷங்களுக்கும் சமைத்து தரப்படும்
+// </div>
     </div>
   </body>
 </html>`;
 };
+
+// Receipt Preview paper (screen only).
+// Mirrors the layout of the printed receipt (same sections, 72mm width).
+// It is purely presentational: it never prints, saves or completes a bill.
+function ReceiptPreviewPaper({ receipt }) {
+  const branch = receipt.branch || {};
+  const items = Array.isArray(receipt.items) ? receipt.items : [];
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  return (
+    <div className="receipt-preview-paper" style={{ width: `${PAPER_WIDTH_MM}mm` }}>
+      <div className="rp-center">
+        {!logoFailed && (
+          <img
+            className="rp-logo"
+            src={LOGO_SRC}
+            alt="Logo"
+            onError={() => setLogoFailed(true)}
+          />
+        )}
+        <div className="rp-name">{branch.name || "BAWA RESTAURANT"}</div>
+        {branch.address && <div>{branch.address}</div>}
+        {branch.phone && <div>Ph: {branch.phone}</div>}
+        {branch.gstin && <div>GSTIN: {branch.gstin}</div>}
+      </div>
+
+      <div className="rp-title">PAYMENT RECEIPT</div>
+      <hr className="rp-hr" />
+
+      <div>Invoice: {receipt.invoiceNumber}</div>
+      <div>Date: {receipt.date}</div>
+
+      <hr className="rp-hr" />
+
+      <table className="rp-table">
+        <thead>
+          <tr>
+            <th className="rp-left">Item</th>
+            <th className="rp-mid">Qty</th>
+            <th className="rp-right">Rate</th>
+            <th className="rp-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id}>
+              <td className="rp-left rp-item-name">{item.name}</td>
+              <td className="rp-mid">{item.quantity}</td>
+              <td className="rp-right">{Number(item.price || 0).toFixed(2)}</td>
+              <td className="rp-right">
+                {(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <hr className="rp-hr" />
+
+      <div className="rp-row">
+        <span>Subtotal</span>
+        <span>{rs(receipt.subtotal)}</span>
+      </div>
+      {receipt.discountAmount > 0 && (
+        <div className="rp-row">
+          <span>Discount</span>
+          <span>-{rs(receipt.discountAmount)}</span>
+        </div>
+      )}
+      <div className="rp-row">
+        <span>CGST (2.5%)</span>
+        <span>{rs(receipt.cgst)}</span>
+      </div>
+      <div className="rp-row">
+        <span>SGST (2.5%)</span>
+        <span>{rs(receipt.sgst)}</span>
+      </div>
+      <div className="rp-row">
+        <span>Amount Before Rounding</span>
+        <span>{rs(receipt.amountBeforeRounding)}</span>
+      </div>
+      <div className="rp-row">
+        <span>Round Off</span>
+        <span>{formatRoundOffRs(receipt.roundOff)}</span>
+      </div>
+
+      <hr className="rp-hr" />
+
+      <div className="rp-row rp-grand">
+        <span>GRAND TOTAL</span>
+        <span>{rs(receipt.total)}</span>
+      </div>
+
+      <hr className="rp-hr" />
+
+      <div className="rp-thanks">Thank you! Visit Again</div>
+      {/* <div className="rp-tamil">
+        ஆர்டரின் பெயரில் அணைத்து விசேஷங்களுக்கும் சமைத்து தரப்படும்
+      </div> */}
+    </div>
+  );
+}
 
 function Billing() {
   // Menu
@@ -353,6 +492,7 @@ function Billing() {
   const [showHeldBills, setShowHeldBills] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
   // Current bill
@@ -642,6 +782,7 @@ const printReceipt = async (receipt) => {
         setShowPayment(false);
         setShowHeldBills(false);
         setShowCancel(false);
+        setShowPreview(false);
       }
     };
 
@@ -692,7 +833,46 @@ const printReceipt = async (receipt) => {
   const taxableAmount = subtotal - discountAmount;
   const cgst = taxableAmount * 0.025;
   const sgst = taxableAmount * 0.025;
-  const total = taxableAmount + cgst + sgst;
+  // Amount after discount + GST, before paisa rounding (unchanged calculation).
+  const grossTotal = taxableAmount + cgst + sgst;
+
+  // Rounding is applied once, only on the final bill amount.
+  // `total` is the whole-rupee payable amount used everywhere below
+  // (payment modal, cash/UPI/split validation, completion, preview, receipt).
+  const { amountBeforeRounding, roundedAmount, roundOff } =
+    roundToWholeRupee(grossTotal);
+  const total = roundedAmount;
+
+  // Receipt preview data: built from the live cart and the existing totals.
+  // Nothing is saved, completed or printed from here.
+  const previewReceipt = useMemo(
+    () => ({
+      invoiceNumber: "Pending (Preview)",
+      branch: getBranchInfo(user),
+      date: new Date().toLocaleString("en-IN"),
+      items: cart,
+      subtotal,
+      discountAmount,
+      taxableAmount,
+      cgst,
+      sgst,
+      amountBeforeRounding,
+      roundOff,
+      total,
+    }),
+    [
+      cart,
+      user,
+      subtotal,
+      discountAmount,
+      taxableAmount,
+      cgst,
+      sgst,
+      amountBeforeRounding,
+      roundOff,
+      total,
+    ]
+  );
 
   // Add food item
   const addToCart = (item) => {
@@ -783,6 +963,7 @@ const printReceipt = async (receipt) => {
     setInvoiceNumber(null);
     setPrintPayload(null);
     setCancelReason("");
+    setShowPreview(false);
   };
 
   // Payment method selection
@@ -805,6 +986,7 @@ const printReceipt = async (receipt) => {
 
   const openPaymentModal = () => {
     selectPayment("CASH");
+    setShowPreview(false);
     setShowPayment(true);
   };
 
@@ -985,6 +1167,10 @@ const printReceipt = async (receipt) => {
           paymentMethod === "CASH" || paymentMethod === "SPLIT" ? cash : 0,
         upiAmount:
           paymentMethod === "UPI" || paymentMethod === "SPLIT" ? upi : 0,
+        // Rounding details so the saved bill matches the receipt.
+        amountBeforeRounding,
+        roundOff,
+        finalAmount: amount,
       });
 
       const completeData = completeResponse?.data || completeResponse || {};
@@ -1016,6 +1202,8 @@ const printReceipt = async (receipt) => {
           taxableAmount,
           cgst,
           sgst,
+          amountBeforeRounding,
+          roundOff,
           total,
           paymentMethod,
           cashAmount:
@@ -1363,6 +1551,12 @@ const printReceipt = async (receipt) => {
               <span>Subtotal</span>
               <strong>{money(subtotal)}</strong>
             </div>
+            {discountAmount > 0 && (
+              <div>
+                <span>Discount</span>
+                <strong>-{money(discountAmount)}</strong>
+              </div>
+            )}
             <div>
               <span>Taxable Amount</span>
               <strong>{money(taxableAmount)}</strong>
@@ -1375,11 +1569,25 @@ const printReceipt = async (receipt) => {
               <span>SGST 2.5%</span>
               <strong>{money(sgst)}</strong>
             </div>
+            <div>
+              <span>Amount Before Rounding</span>
+              <strong>{money(amountBeforeRounding)}</strong>
+            </div>
+            <div className="round-off-row">
+              <span>Round Off (+/-)</span>
+              <strong
+                className={
+                  roundOff > 0 ? "round-up" : roundOff < 0 ? "round-down" : ""
+                }
+              >
+                {formatRoundOff(roundOff)}
+              </strong>
+            </div>
 
             <div className="grand-total">
               <div>
-                <strong>GRAND TOTAL</strong>
-                <span>Inclusive of taxes</span>
+                <strong>FINAL PAYABLE</strong>
+                <span>Inclusive of taxes, rounded</span>
               </div>
               <b>{money(total)}</b>
             </div>
@@ -1406,6 +1614,17 @@ const printReceipt = async (receipt) => {
                 </button>
               </div> */}
 
+              {/* Receipt preview: view only, no billing or printing */}
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  className="preview-receipt-button"
+                  onClick={() => setShowPreview(true)}
+                >
+                  🧾 Preview Receipt
+                </button>
+              )}
+
               <button
                 type="button"
                 className="settle-button"
@@ -1430,6 +1649,46 @@ const printReceipt = async (receipt) => {
           )}
         </aside>
       </main>
+
+      {/* Receipt preview modal */}
+      {showPreview && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPreview(false);
+          }}
+        >
+          <div className="receipt-preview-modal">
+            <div className="modal-head">
+              <div>
+                <h2>Receipt Preview</h2>
+                <p>Preview only — bill is not saved or printed</p>
+              </div>
+              <button type="button" onClick={() => setShowPreview(false)}>
+                ×
+              </button>
+            </div>
+
+            <div className="receipt-preview-body">
+              {cart.length === 0 ? (
+                <div className="receipt-preview-empty">
+                  <div>🛒</div>
+                  <strong>No items added</strong>
+                  <span>Add food items to see the receipt preview.</span>
+                </div>
+              ) : (
+                <ReceiptPreviewPaper receipt={previewReceipt} />
+              )}
+            </div>
+
+            <div className="receipt-preview-actions">
+              <button type="button" onClick={() => setShowPreview(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment modal */}
       {showPayment && (

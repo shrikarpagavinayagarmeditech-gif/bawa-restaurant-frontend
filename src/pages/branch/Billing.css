@@ -1827,3 +1827,259 @@
 .bawa-pos .bill-actions {
     grid-template-columns: 1fr;
 }
+
+/* =========================================================
+   RECEIPT PREVIEW
+   Preview button (bill panel) + preview modal + receipt paper.
+   Screen-only; never used for printing.
+   ========================================================= */
+
+/* Preview button: sits above "Pay & Settle" */
+.bawa-pos .preview-receipt-button {
+    flex: 0 0 auto;
+    width: calc(100% - 20px);
+    min-height: 36px;
+    margin: 7px 10px 0;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid #ead6d6;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 900;
+    touch-action: manipulation;
+}
+
+.bawa-pos .preview-receipt-button:hover {
+    background: #fbe4e4;
+    border-color: #d9b3b3;
+}
+
+/* Modal shell */
+.bawa-pos .receipt-preview-modal {
+    width: min(460px, 100%);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e1e3e6;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 22px 70px rgba(0, 0, 0, .22);
+}
+
+.bawa-pos .receipt-preview-modal .modal-head {
+    flex: 0 0 auto;
+}
+
+/* Scrollable grey area that holds the centered paper */
+.bawa-pos .receipt-preview-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 16px 12px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: auto;
+    background: #eceff2;
+}
+
+.bawa-pos .receipt-preview-body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.bawa-pos .receipt-preview-body::-webkit-scrollbar-thumb {
+    background: #cbd0d6;
+    border-radius: 20px;
+}
+
+.bawa-pos .receipt-preview-empty {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #969ca4;
+}
+
+.bawa-pos .receipt-preview-empty>div {
+    font-size: 30px;
+    opacity: .65;
+}
+
+.bawa-pos .receipt-preview-empty strong {
+    margin-top: 8px;
+    color: #5b6169;
+    font-size: 13px;
+}
+
+.bawa-pos .receipt-preview-empty span {
+    margin-top: 3px;
+    font-size: 10px;
+}
+
+/* Footer with Close button */
+.bawa-pos .receipt-preview-actions {
+    flex: 0 0 auto;
+    padding: 10px 12px 12px;
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1px solid #eceef1;
+    background: #fff;
+}
+
+.bawa-pos .receipt-preview-actions button {
+    min-height: 42px;
+    border-radius: 7px;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.bawa-pos .receipt-preview-actions button:hover {
+    background: var(--primary-dark);
+}
+
+/* Receipt paper (72mm thermal width, same sections as the printed bill) */
+.bawa-pos .receipt-preview-paper {
+    flex: 0 0 auto;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 4mm 3mm;
+    background: #fff;
+    color: #000;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, .14);
+    word-break: break-word;
+}
+
+.bawa-pos .receipt-preview-paper .rp-center {
+    text-align: center;
+}
+
+.bawa-pos .receipt-preview-paper .rp-logo {
+    display: block;
+    width: 40mm;
+    max-width: 100%;
+    margin: 0 auto 4px;
+}
+
+.bawa-pos .receipt-preview-paper .rp-name {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.bawa-pos .receipt-preview-paper .rp-title {
+    margin-top: 6px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.bawa-pos .receipt-preview-paper .rp-hr {
+    margin: 6px 0;
+    border: 0;
+    border-top: 1px dashed #000;
+}
+
+.bawa-pos .receipt-preview-paper .rp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.bawa-pos .receipt-preview-paper .rp-table th {
+    padding-bottom: 2px;
+    font-weight: 700;
+}
+
+.bawa-pos .receipt-preview-paper .rp-table td {
+    padding: 2px 0;
+    vertical-align: top;
+}
+
+.bawa-pos .receipt-preview-paper .rp-left {
+    text-align: left;
+}
+
+.bawa-pos .receipt-preview-paper .rp-mid {
+    padding: 0 3px;
+    text-align: center;
+}
+
+.bawa-pos .receipt-preview-paper .rp-right {
+    padding-left: 3px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.bawa-pos .receipt-preview-paper .rp-item-name {
+    word-break: break-word;
+}
+
+.bawa-pos .receipt-preview-paper .rp-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.bawa-pos .receipt-preview-paper .rp-grand {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.bawa-pos .receipt-preview-paper .rp-thanks {
+    margin-top: 8px;
+    text-align: center;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.bawa-pos .receipt-preview-paper .rp-tamil {
+    margin-top: 6px;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+    .bawa-pos .preview-receipt-button {
+        width: calc(100% - 16px);
+        min-height: 34px;
+        margin: 5px 8px 0;
+    }
+
+    .bawa-pos .receipt-preview-modal {
+        max-height: calc(100dvh - 16px);
+        border-radius: 12px;
+    }
+
+    .bawa-pos .receipt-preview-body {
+        padding: 12px 8px;
+    }
+
+    .bawa-pos .receipt-preview-paper {
+        padding: 3mm 2mm;
+    }
+}
+
+/* =========================================================
+   ROUND OFF (paisa rounding) - billing summary
+   ========================================================= */
+.bawa-pos .bill-summary>div.round-off-row>strong.round-up {
+    color: #2e7d32;
+}
+
+.bawa-pos .bill-summary>div.round-off-row>strong.round-down {
+    color: #b3261e;
+}

@@ -1,9 +1,9 @@
+
 import React from "react";
 import "./ReceiptPrint.css";
 
-// File location: frontend/public/images/bawa-logo.png
-// Files inside /public are served from the site root, so no "public" in the path.
-const LOGO_SRC = "/images/bawa-logo.png";
+// Logo file: frontend/public/images/bawa_hotel_tamil_logo.png
+const LOGO_SRC = "/images/bawa_hotel_tamil_logo.png";
 
 const money = (value) =>
   `Rs. ${Number(value || 0).toFixed(2)}`;
@@ -17,25 +17,45 @@ export default function ReceiptPrint({ receipt }) {
   return (
     <div id="receipt-print-root">
       <div className="thermal-receipt">
+
         {/* LOGO + BRANCH DETAILS */}
         <div className="receipt-header">
-          <img className="receipt-logo" src={LOGO_SRC} alt="Bawa" />
+          <img
+            className="receipt-logo"
+            src={LOGO_SRC}
+            alt="Bawa"
+          />
 
           <h2>{branch.name || "BAWA RESTAURANT"}</h2>
 
           {branch.address && (
             <p className="receipt-address">{branch.address}</p>
           )}
-          {branch.phone && <p>Mobile: {branch.phone}</p>}
-          {branch.gstin && <p>GSTIN: {branch.gstin}</p>}
+
+          {branch.phone && (
+            <p className="receipt-small-text">
+              Mobile: {branch.phone}
+            </p>
+          )}
+
+          {branch.gstin && (
+            <p className="receipt-small-text">
+              GSTIN: {branch.gstin}
+            </p>
+          )}
         </div>
 
-        <p className="center receipt-title">INVOICE RECEIPT</p>
+        <p className="center receipt-title">
+          INVOICE RECEIPT
+        </p>
 
         <hr />
 
-        <p>Invoice NO: {receipt.invoiceNumber}</p>
-        <p>Date: {receipt.date}</p>
+        <div className="receipt-meta">
+          <p>Invoice NO: {receipt.invoiceNumber}</p>
+          <p>Date: {receipt.date}</p>
+        </div>
+
         <hr />
 
         <table className="receipt-items">
@@ -46,6 +66,7 @@ export default function ReceiptPrint({ receipt }) {
               <th>Amount</th>
             </tr>
           </thead>
+
           <tbody>
             {items.map((item, index) => (
               <tr key={`${item.id}-${index}`}>
@@ -71,17 +92,12 @@ export default function ReceiptPrint({ receipt }) {
           </div>
         )}
 
-        {/* <div className="receipt-row">
-          <span>Taxable Amount</span>
-          <span>{money(receipt.taxableAmount)}</span>
-        </div> */}
-
-        <div className="receipt-row">
+        <div className="receipt-row receipt-tax-row">
           <span>CGST (2.5%)</span>
           <span>{money(receipt.cgst)}</span>
         </div>
 
-        <div className="receipt-row">
+        <div className="receipt-row receipt-tax-row">
           <span>SGST (2.5%)</span>
           <span>{money(receipt.sgst)}</span>
         </div>
@@ -93,37 +109,13 @@ export default function ReceiptPrint({ receipt }) {
           <strong>{money(receipt.total)}</strong>
         </div>
 
-      
+        <hr />
 
-        {/* <p>Payment Method: {receipt.paymentMethod}</p>
-
-        {receipt.paymentMethod === "CASH" && (
-          <p>Cash: {money(receipt.cashAmount)}</p>
-        )}
-
-        {receipt.paymentMethod === "UPI" && (
-          <p>UPI: {money(receipt.upiAmount)}</p>
-        )}
-
-        {receipt.paymentMethod === "SPLIT" && (
-          <>
-            <p>Cash: {money(receipt.cashAmount)}</p>
-            <p>UPI: {money(receipt.upiAmount)}</p>
-          </>
-        )} */}
-
-      
-<hr />
-
-<div className="receipt-footer">
-  <p className="center thank-you">
-    Thank you! Visit Again
-  </p>
-
-  <p className="center receipt-tamil-message">
-    ஆர்டரின் பெயரில் அணைத்து விசேஷங்களுக்கும் சமைத்து தரப்படும்
-  </p>
-</div>
+        <div className="receipt-footer">
+          <p className="center thank-you">
+            Thank you! Visit Again
+          </p>
+        </div>
 
       </div>
     </div>

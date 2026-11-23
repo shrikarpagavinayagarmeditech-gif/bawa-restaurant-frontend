@@ -1283,7 +1283,6 @@
     width: 100% !important;
     max-width: 100% !important;
   }
-
   .food-image-preview img {
     width: 80px !important;
     height: 80px !important;
@@ -1292,3 +1291,245 @@
   }
 
 }
+
+/* =========================================
+   FOOD ITEM MANUAL ORDERING
+========================================= */
+
+/* =========================================
+   FOOD ITEM MANUAL ORDERING
+========================================= */
+
+.food-order-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 22px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+}
+
+.food-order-card h2 {
+  margin: 0 0 6px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.food-order-card > p {
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.food-order-card select {
+  width: 100%;
+  max-width: 350px;
+  height: 44px;
+  padding: 0 13px;
+  margin-bottom: 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  outline: none;
+}
+
+.food-order-card select:focus {
+  border-color: #8b1c1c;
+  box-shadow: 0 0 0 3px rgba(139, 28, 28, 0.08);
+}
+
+/* ORDER LIST */
+
+.food-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+/* EACH FOOD ROW */
+
+.food-order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  min-height: 76px;
+  padding: 12px 15px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.food-order-row:hover {
+  background: #fffafa;
+  border-color: #e8baba;
+}
+
+.food-order-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #fff1f1;
+  color: #8b1c1c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.food-order-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.food-order-info strong {
+  display: block;
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.food-order-info small {
+  display: block;
+  margin-top: 4px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.food-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.food-order-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.food-order-actions button:hover:not(:disabled) {
+  border-color: #8b1c1c;
+  background: #fff1f1;
+  color: #8b1c1c;
+}
+
+.food-order-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* SAVE ORDER */
+
+.food-order-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 43px;
+  margin-top: 18px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 9px;
+  background: #8b1c1c;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.food-order-save-button:hover {
+  background: #6f1414;
+  transform: translateY(-1px);
+}
+
+.food-order-save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* UNSAVED WARNING */
+
+.food-order-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid #fde68a;
+  border-radius: 9px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 640px) {
+  .food-order-card {
+    padding: 15px;
+  }
+
+  .food-order-card h2 {
+    font-size: 16px;
+  }
+
+  .food-order-row {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .food-order-info {
+    gap: 8px;
+  }
+
+  .food-order-info strong {
+    max-width: 150px;
+    font-size: 13px;
+  }
+
+  .food-order-actions {
+    gap: 4px;
+  }
+
+  .food-order-actions button {
+    width: 31px;
+    height: 33px;
+    font-size: 15px;
+  }
+
+  .food-order-save-button {
+    width: 100%;
+  }
+}
+
+
