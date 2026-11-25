@@ -3,7 +3,7 @@ import React from "react";
 import "./ReceiptPrint.css";
 
 // Logo file: frontend/public/images/bawa_hotel_tamil_logo.png
-const LOGO_SRC = "/images/bawa_hotel_tamil_logo.png";
+const LOGO_SRC = "/images/bawa_hotel_tamil_logo.jpeg";
 
 const money = (value) =>
   `Rs. ${Number(value || 0).toFixed(2)}`;
