@@ -17,7 +17,7 @@ import ReceiptPrint from "./ReceiptPrint.jsx";
 import "./Billing.css";
 import html2canvas from "html2canvas";
 
-const LOGO_SRC = "/images/bawa-logo.png";
+const LOGO_SRC = "/images/bawa_hotel_tamil_logo.jpeg";
 
 // Leave empty to use the Windows default printer,
 // or set the exact printer name, e.g. "POS-80".
@@ -227,19 +227,46 @@ const getBranchInfo = (user) => {
   };
 };
 
-// Convert the logo to a base64 data URI (QZ Tray cannot load relative URLs)
+// Load the public-folder logo and convert it to a data URI.
+// The data URI is passed into ReceiptPrint so html2canvas can capture it reliably.
 const loadLogoAsDataUri = async () => {
   try {
-    const res = await fetch(LOGO_SRC);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
+    const response = await fetch(LOGO_SRC, { cache: "force-cache" });
+    if (!response.ok) {
+      throw new Error(`Logo request failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    if (!blob.type.startsWith("image/")) {
+      throw new Error("The logo response is not an image.");
+    }
+
+    const dataUri = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Unable to convert logo image."));
       reader.readAsDataURL(blob);
     });
-  } catch {
+
+    const image = new Image();
+    image.src = dataUri;
+    if (typeof image.decode === "function") {
+      await image.decode();
+    } else {
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = () => reject(new Error("Logo image could not be decoded."));
+      });
+    }
+
+    if (!image.naturalWidth || !image.naturalHeight) {
+      throw new Error("Logo image has invalid dimensions.");
+    }
+
+    console.info("Receipt logo loaded successfully.");
+    return dataUri;
+  } catch (error) {
+    console.error("Receipt logo loading error:", error);
     return null;
   }
 };
@@ -507,14 +534,17 @@ function Billing() {
 
   const user = useMemo(() => getUserFromStorage(), []);
 
-  // Preload the logo (as base64) so it is ready before printing.
+  // Preload the logo and retain it as a data URI for reliable thermal capture.
   useEffect(() => {
-    const img = new Image();
-    img.src = LOGO_SRC;
+    let mounted = true;
 
     loadLogoAsDataUri().then((uri) => {
-      logoDataUriRef.current = uri;
+      if (mounted) logoDataUriRef.current = uri;
     });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Direct print through QZ Tray; falls back to the browser print dialog.
@@ -526,120 +556,116 @@ const printReceipt = async (receipt) => {
   let root = null;
 
   try {
-    // Create a hidden container.
-    printContainer = document.createElement("div");
+    if (!receipt) throw new Error("Receipt data is missing.");
 
+    // Use the cached logo; retry once if the preload has not completed yet.
+    let logoDataUri = logoDataUriRef.current;
+    if (!logoDataUri) {
+      logoDataUri = await loadLogoAsDataUri();
+      logoDataUriRef.current = logoDataUri;
+    }
+
+    if (!logoDataUri) {
+      console.warn("Receipt logo is unavailable. Printing without the logo.");
+    }
+
+    const receiptWithLogo = { ...receipt, logoDataUri };
+
+    // Render the receipt off-screen; do not invoke the browser print dialog.
+    printContainer = document.createElement("div");
     Object.assign(printContainer.style, {
       position: "fixed",
       left: "-10000px",
       top: "0",
       width: "72mm",
+      minWidth: "72mm",
       background: "#ffffff",
+      color: "#000000",
       zIndex: "-1",
+      overflow: "visible",
     });
-
     document.body.appendChild(printContainer);
 
-    // Render the React receipt component.
     root = createRoot(printContainer);
-    root.render(<ReceiptPrint receipt={receipt} />);
+    root.render(<ReceiptPrint receipt={receiptWithLogo} />);
 
-    // Wait for React to render.
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait for React to commit the component before querying its DOM.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    // Wait for the logo and other images to load.
-    const images = Array.from(
-      printContainer.querySelectorAll("img")
-    );
-
-    await Promise.all(
-      images.map((img) => {
-        if (img.complete) return Promise.resolve();
-
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      })
-    );
-
-    // Wait for fonts to load.
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
-
-    const receiptElement =
-      printContainer.querySelector(".thermal-receipt");
-
+    const receiptElement = printContainer.querySelector(".thermal-receipt");
     if (!receiptElement) {
       throw new Error("Receipt component could not be rendered.");
     }
 
-    // Convert the styled receipt into an image.
+    // Wait for all receipt images to finish loading and decoding.
+    const images = Array.from(receiptElement.querySelectorAll("img"));
+    await Promise.all(images.map(async (img) => {
+      try {
+        if (!img.complete) {
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error(`Image failed to load: ${img.src}`));
+          });
+        }
+        if (typeof img.decode === "function") await img.decode();
+      } catch (imageError) {
+        console.error("Receipt image could not be loaded:", imageError);
+      }
+    }));
+
+    if (document.fonts?.ready) await document.fonts.ready;
+
     const canvas = await html2canvas(receiptElement, {
       backgroundColor: "#ffffff",
       scale: 3,
       useCORS: true,
+      allowTaint: false,
       logging: false,
+      imageTimeout: 15000,
+      scrollX: 0,
+      scrollY: 0,
     });
 
-    const base64 = canvas
-      .toDataURL("image/png")
-      .split(",")[1];
+    if (!canvas.width || !canvas.height) {
+      throw new Error("Receipt image generation failed.");
+    }
 
-    // Send the image directly to the printer bridge.
+    const base64 = canvas.toDataURL("image/png").split(",")[1];
+    if (!base64) throw new Error("Unable to generate receipt image.");
+
+    // Send the captured receipt directly to the installed Android print bridge.
     const response = await fetch("http://localhost:9100/print", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         cut: true,
-        paperWidth: 80, // Change to 58 for a 58mm printer.
+        paperWidth: 80,
         reference: String(receipt.invoiceNumber || ""),
         content: [
-          {
-            type: "image",
-            base64,
-            align: "center",
-          },
-          {
-            type: "feed",
-            lines: 3,
-          },
+          { type: "image", base64, align: "center" },
+          { type: "feed", lines: 3 },
         ],
       }),
     });
 
     const result = await response.json().catch(() => ({}));
-
     if (!response.ok) {
       throw new Error(
-        result.message ||
-          result.detail ||
-          `Print failed with status ${response.status}`
+        result.message || result.detail || `Print failed with status ${response.status}`
       );
     }
 
-    console.log("Receipt printed successfully:", result);
+    console.info("Receipt printed successfully:", result);
     return true;
   } catch (error) {
     console.error("Thermal printing failed:", error);
-
     alert(
-      `Receipt printing failed: ${error.message}. Check the Android print bridge and Bluetooth printer.`
+      `Receipt printing failed: ${error.message}. Check that the Android print bridge is running and the Bluetooth printer is connected.`
     );
-
     return false;
   } finally {
-    // Clean up only after image capture and print submission.
-    if (root) {
-      root.unmount();
-    }
-
-    if (printContainer) {
-      printContainer.remove();
-    }
+    if (root) root.unmount();
+    if (printContainer) printContainer.remove();
   }
 };
 
